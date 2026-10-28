@@ -5,7 +5,8 @@ import {
     signInWithEmailAndPassword,
     signOut,
     onAuthStateChanged,
-    updateProfile
+    updateProfile,
+    sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
     collection,
@@ -105,6 +106,33 @@ formLogin.addEventListener("submit", async function (e) {
     }
 });
  
+// ===== 5B. RECUPERAR CONTRASEÑA =====
+auth.languageCode = "es"; // el correo de Firebase llega en español
+ 
+document.getElementById("olvide-clave").addEventListener("click", async function (e) {
+    e.preventDefault();
+ 
+    const correo = document.getElementById("login-correo").value.trim().toLowerCase();
+    const error = document.getElementById("login-error");
+    const info = document.getElementById("login-info");
+    error.textContent = "";
+    info.textContent = "";
+ 
+    if (correo === "") {
+        error.textContent = "Escribe tu correo arriba y vuelve a dar clic en \"¿Olvidaste tu contraseña?\".";
+        return;
+    }
+ 
+    try {
+        await sendPasswordResetEmail(auth, correo);
+        // Por seguridad no se dice si el correo existe o no
+        info.textContent = "Si hay una cuenta con " + correo + ", te enviamos un enlace para crear una nueva contraseña. " +
+                           "Revisa también la carpeta de spam.";
+    } catch (err) {
+        error.textContent = traducirError(err.code);
+    }
+});
+ 
 // ===== 6. CERRAR SESIÓN =====
 document.getElementById("btn-salir").addEventListener("click", function () {
     signOut(auth);
@@ -115,6 +143,7 @@ const botonesMenu = document.querySelectorAll(".menu-btn");
  
 botonesMenu.forEach(function (boton) {
     boton.addEventListener("click", function () {
+        if (editandoId && boton.dataset.vista !== "vista-registrar") salirDeEdicion();
         mostrarVista(boton.dataset.vista);
     });
 });
@@ -165,8 +194,50 @@ async function cargarMovimientos() {
     actualizarTodo();
 }
  
-// ===== 10. REGISTRAR MOVIMIENTOS (RF2, RF3) =====
+// ===== 10. REGISTRAR Y EDITAR MOVIMIENTOS (RF2, RF3) =====
 const formMovimiento = document.getElementById("form-movimiento");
+const tituloMovimiento = formMovimiento.querySelector("h2");
+const botonGuardar = formMovimiento.querySelector("button[type=submit]");
+ 
+// Si tiene un id, el formulario está editando ese movimiento; si es null, está creando uno nuevo
+let editandoId = null;
+ 
+// Llena el formulario con un movimiento existente para editarlo
+function editarMovimiento(id) {
+    const m = movimientos.find(m => m.id === id);
+    if (!m) return;
+ 
+    editandoId = id;
+    selTipo.value = m.tipo;
+    cargarCategorias();                 // carga las categorías de ese tipo
+    selCategoria.value = m.categoria;
+    document.getElementById("mov-monto").value = m.monto;
+    document.getElementById("mov-fecha").value = m.fecha;
+    document.getElementById("mov-desc").value = m.descripcion || "";
+    document.getElementById("mov-error").textContent = "";
+ 
+    tituloMovimiento.textContent = "Editar movimiento";
+    botonGuardar.textContent = "Guardar cambios";
+    document.getElementById("mov-cancelar").hidden = false;
+    mostrarVista("vista-registrar");
+}
+ 
+// Vuelve el formulario a "Nuevo movimiento"
+function salirDeEdicion() {
+    editandoId = null;
+    tituloMovimiento.textContent = "Nuevo movimiento";
+    botonGuardar.textContent = "Guardar movimiento";
+    document.getElementById("mov-cancelar").hidden = true;
+    document.getElementById("mov-monto").value = "";
+    document.getElementById("mov-desc").value = "";
+    document.getElementById("mov-fecha").value = hoy();
+    document.getElementById("mov-error").textContent = "";
+}
+ 
+document.getElementById("mov-cancelar").addEventListener("click", function () {
+    salirDeEdicion();
+    mostrarVista("vista-historial");
+});
  
 formMovimiento.addEventListener("submit", async function (e) {
     e.preventDefault();
@@ -174,7 +245,7 @@ formMovimiento.addEventListener("submit", async function (e) {
     const monto = Number(document.getElementById("mov-monto").value);
     const fecha = document.getElementById("mov-fecha").value;
     const error = document.getElementById("mov-error");
-    const boton = formMovimiento.querySelector("button[type=submit]");
+    const boton = botonGuardar;
  
     if (!monto || monto <= 0) {
         error.textContent = "Escribe un monto mayor a 0.";
@@ -194,10 +265,25 @@ formMovimiento.addEventListener("submit", async function (e) {
         descripcion: document.getElementById("mov-desc").value.trim()
     };
  
+    const textoBoton = boton.textContent;
     boton.disabled = true;
     boton.textContent = "Guardando...";
  
     try {
+        if (editandoId) {
+            // --- EDITAR: actualiza el documento que ya existe ---
+            await updateDoc(doc(db, "movimientos", editandoId), movimiento);
+            const indice = movimientos.findIndex(m => m.id === editandoId);
+            movimientos[indice] = { id: editandoId, ...movimiento };
+ 
+            salirDeEdicion();
+            actualizarTodo();
+            document.getElementById("mascota-mensaje").textContent = "Listo, actualicé el movimiento ✏️";
+            mostrarVista("vista-historial");
+            return;
+        }
+ 
+        // --- CREAR: agrega un documento nuevo ---
         const referencia = await addDoc(collection(db, "movimientos"), movimiento);
         movimientos.push({ id: referencia.id, ...movimiento });
  
@@ -212,7 +298,7 @@ formMovimiento.addEventListener("submit", async function (e) {
         error.textContent = "No se pudo guardar. Revisa tu conexión a internet.";
     } finally {
         boton.disabled = false;
-        boton.textContent = "Guardar movimiento";
+        if (boton.textContent === "Guardando...") boton.textContent = textoBoton;
     }
 });
  
@@ -369,14 +455,19 @@ function escapar(texto) {
     return div.innerHTML;
 }
  
-function dibujarHistorial() {
+// Aplica los filtros elegidos (la usan la tabla y la exportación a Excel)
+function movimientosFiltrados() {
     let lista = [...movimientos];
  
     if (fTipo.value) lista = lista.filter(m => m.tipo === fTipo.value);
     if (fCategoria.value) lista = lista.filter(m => m.categoria === fCategoria.value);
     if (fMes.value) lista = lista.filter(m => m.fecha.slice(0, 7) === fMes.value);
  
-    lista.sort((a, b) => b.fecha.localeCompare(a.fecha));
+    return lista.sort((a, b) => b.fecha.localeCompare(a.fecha));
+}
+ 
+function dibujarHistorial() {
+    const lista = movimientosFiltrados();
  
     const tabla = document.getElementById("tabla-historial");
  
@@ -394,7 +485,10 @@ function dibujarHistorial() {
             <td class="${m.tipo === "gasto" ? "rojo" : "verde"}">
                 ${m.tipo === "gasto" ? "-" : "+"} ${pesos(m.monto)}
             </td>
-            <td><button class="btn-borrar" data-id="${m.id}">🗑</button></td>
+            <td class="acciones">
+                <button class="btn-editar" data-id="${m.id}" title="Editar">✏️</button>
+                <button class="btn-borrar" data-id="${m.id}" title="Eliminar">🗑</button>
+            </td>
         </tr>`).join("");
 }
  
@@ -402,8 +496,14 @@ fTipo.addEventListener("change", dibujarHistorial);
 fCategoria.addEventListener("change", dibujarHistorial);
 fMes.addEventListener("change", dibujarHistorial);
  
-// Eliminar un movimiento de la base de datos
+// Botones de cada fila: editar o eliminar
 document.getElementById("tabla-historial").addEventListener("click", async function (e) {
+    const btnEditar = e.target.closest(".btn-editar");
+    if (btnEditar) {
+        editarMovimiento(btnEditar.dataset.id);
+        return;
+    }
+ 
     const boton = e.target.closest(".btn-borrar");
     if (!boton) return;
     if (!confirm("¿Eliminar este movimiento?")) return;
@@ -417,6 +517,46 @@ document.getElementById("tabla-historial").addEventListener("click", async funct
         console.error(err);
         alert("No se pudo eliminar. Revisa tu conexión.");
     }
+});
+ 
+// ===== 15B. EXPORTAR A EXCEL (CSV) =====
+document.getElementById("btn-exportar").addEventListener("click", function () {
+    const lista = movimientosFiltrados();
+ 
+    if (lista.length === 0) {
+        alert("No hay movimientos para exportar con esos filtros.");
+        return;
+    }
+ 
+    // Encierra cada valor entre comillas para que las comas o ; del texto no dañen las columnas
+    const celda = valor => '"' + String(valor).replace(/"/g, '""') + '"';
+ 
+    const filas = [["Fecha", "Tipo", "Categoría", "Descripción", "Monto"]];
+    lista.forEach(function (m) {
+        filas.push([m.fecha, m.tipo === "gasto" ? "Gasto" : "Ingreso", m.categoria, m.descripcion || "", m.monto]);
+    });
+ 
+    // Totales al final
+    const ingresos = sumar(lista, "ingreso");
+    const gastos = sumar(lista, "gasto");
+    filas.push([]);
+    filas.push(["", "", "", "Total ingresos", ingresos]);
+    filas.push(["", "", "", "Total gastos", gastos]);
+    filas.push(["", "", "", "Balance", ingresos - gastos]);
+ 
+    // Excel en español usa ; para separar columnas.
+    // El \uFEFF al inicio hace que Excel lea bien las tildes y la ñ.
+    const contenido = "\uFEFF" + filas.map(f => f.map(celda).join(";")).join("\r\n");
+ 
+    // Crea el archivo y lo descarga
+    const archivo = new Blob([contenido], { type: "text/csv;charset=utf-8" });
+    const enlace = document.createElement("a");
+    enlace.href = URL.createObjectURL(archivo);
+    enlace.download = "finpet-historial-" + hoy() + ".csv";
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+    setTimeout(() => URL.revokeObjectURL(enlace.href), 1000);
 });
  
 // ===== 16. RECORDATORIO DIARIO (RF8) =====
@@ -857,6 +997,7 @@ onAuthStateChanged(auth, async function (usuario) {
         movimientos = [];
         presupuestos = [];
         metas = [];
+        salirDeEdicion();
         pantallaApp.hidden = true;
         pantallaAcceso.hidden = false;
     }

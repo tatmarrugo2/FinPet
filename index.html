@@ -20,7 +20,9 @@
             <label>Contraseña</label>
             <input type="password" id="login-clave" placeholder="Tu contraseña">
             <p id="login-error" class="error"></p>
+            <p id="login-info" class="info"></p>
             <button type="submit">Entrar</button>
+            <p class="cambiar"><a href="#" id="olvide-clave">¿Olvidaste tu contraseña?</a></p>
             <p class="cambiar">¿No tienes cuenta? <a href="#" id="ir-registro">Crear una</a></p>
         </form>
 
@@ -183,6 +185,7 @@
 
                     <p id="mov-error" class="error"></p>
                     <button type="submit">Guardar movimiento</button>
+                    <button type="button" id="mov-cancelar" class="btn-cancelar" hidden>Cancelar edición</button>
                 </form>
             </div>
             <!-- ========== PRESUPUESTO POR CATEGORÍA ========== -->
@@ -235,6 +238,7 @@
             <div id="vista-historial" class="vista" hidden>
                 <div class="tarjeta tarjeta-ancha">
                                         <button type="button" id="btn-ejemplo" class="btn-ejemplo">Cargar datos de ejemplo</button>
+                                        <button type="button" id="btn-exportar" class="btn-ejemplo">⬇ Descargar Excel (CSV)</button>
                     <div class="filtros">
                         <select id="f-tipo">
                             <option value="">Todos los tipos</option>

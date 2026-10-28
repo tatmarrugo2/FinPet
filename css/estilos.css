@@ -313,3 +313,13 @@ button:hover { opacity: 0.9; }
     .menu { flex-wrap: wrap; gap: 4px; }
     .menu-btn { padding: 8px 10px; font-size: 0.85rem; }
 }
+
+/* ===== MENSAJE INFORMATIVO (recuperar contraseña) ===== */
+.info { color: var(--verde); font-weight: bold; font-size: 0.9rem; margin: 4px 0 0; }
+.info:empty { display: none; }
+
+/* ===== EDITAR MOVIMIENTOS ===== */
+.btn-cancelar { background: var(--fondo); color: var(--texto); margin-top: 6px; }
+.btn-editar { background: none; color: var(--gris); margin: 0; padding: 4px 8px; }
+.btn-editar:hover { background: var(--verde-claro); }
+.acciones { white-space: nowrap; }
