@@ -104,6 +104,109 @@ document.getElementById("btn-salir").addEventListener("click", function () {
     pantallaAcceso.hidden = false;
 });
 
+// ===== 9. MENÚ: CAMBIAR DE SECCIÓN =====
+const botonesMenu = document.querySelectorAll(".menu-btn");
+
+botonesMenu.forEach(function (boton) {
+    boton.addEventListener("click", function () {
+        mostrarVista(boton.dataset.vista);
+    });
+});
+
+function mostrarVista(idVista) {
+    // Oculta todas las vistas y muestra solo la elegida
+    document.querySelectorAll(".vista").forEach(v => v.hidden = true);
+    document.getElementById(idVista).hidden = false;
+
+    // Marca en verde el botón activo del menú
+    botonesMenu.forEach(b => b.classList.toggle("activo", b.dataset.vista === idVista));
+}
+
+// ===== 10. CATEGORÍAS (RF4) =====
+const CATEGORIAS = {
+    gasto: ["Comida", "Comida fuera de casa", "Transporte", "Entretenimiento", "Estudio", "Servicios", "Ropa", "Salud", "Otros"],
+    ingreso: ["Salario", "Mesada", "Trabajo extra", "Ventas", "Otros"]
+};
+
+const selTipo = document.getElementById("mov-tipo");
+const selCategoria = document.getElementById("mov-categoria");
+
+// Llena la lista de categorías según si es gasto o ingreso
+function cargarCategorias() {
+    selCategoria.innerHTML = "";
+    CATEGORIAS[selTipo.value].forEach(function (cat) {
+        const opcion = document.createElement("option");
+        opcion.value = cat;
+        opcion.textContent = cat;
+        selCategoria.appendChild(opcion);
+    });
+}
+
+selTipo.addEventListener("change", cargarCategorias);
+cargarCategorias();
+
+// ===== 11. REGISTRAR MOVIMIENTOS (RF2, RF3) =====
+
+// Fecha de hoy en formato AAAA-MM-DD (hora de Colombia)
+function hoy() {
+    const d = new Date();
+    const mes = String(d.getMonth() + 1).padStart(2, "0");
+    const dia = String(d.getDate()).padStart(2, "0");
+    return d.getFullYear() + "-" + mes + "-" + dia;
+}
+
+document.getElementById("mov-fecha").value = hoy();
+
+// Devuelve solo los movimientos del usuario que inició sesión
+function misMovimientos() {
+    const correo = leer("finpet_sesion", null);
+    return leer("finpet_movimientos", []).filter(m => m.correo === correo);
+}
+
+document.getElementById("form-movimiento").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const monto = Number(document.getElementById("mov-monto").value);
+    const fecha = document.getElementById("mov-fecha").value;
+    const error = document.getElementById("mov-error");
+
+    if (!monto || monto <= 0) {
+        error.textContent = "Escribe un monto mayor a 0.";
+        return;
+    }
+    if (!fecha) {
+        error.textContent = "Elige una fecha.";
+        return;
+    }
+
+    const movimiento = {
+        id: Date.now(),                       // número único para identificarlo
+        correo: leer("finpet_sesion", null),  // de quién es
+        tipo: selTipo.value,                  // "gasto" o "ingreso"
+        monto: monto,
+        categoria: selCategoria.value,
+        fecha: fecha,
+        descripcion: document.getElementById("mov-desc").value.trim()
+    };
+
+    const todos = leer("finpet_movimientos", []);
+    todos.push(movimiento);
+    guardar("finpet_movimientos", todos);
+
+    // Limpia el formulario y vuelve al inicio
+    error.textContent = "";
+    document.getElementById("mov-monto").value = "";
+    document.getElementById("mov-desc").value = "";
+    actualizarTodo();
+    mostrarVista("vista-inicio");
+});
+
+// ===== 12. ACTUALIZAR PANTALLAS =====
+// (por ahora solo muestra los datos en la consola; en el siguiente paso la completamos)
+function actualizarTodo() {
+    console.log("Movimientos del usuario:", misMovimientos());
+}
+
 // ===== 8. AL ABRIR LA PÁGINA =====
 // Si ya había alguien con sesión abierta, entra directo
 if (leer("finpet_sesion", null)) {
