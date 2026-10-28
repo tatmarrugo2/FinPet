@@ -2,7 +2,7 @@
 
 **FinPet** es una aplicación web para registrar, categorizar y consultar ingresos y gastos personales, acompañada por **Pepo**, un búho virtual que reacciona a los hábitos financieros del usuario y le da mensajes de motivación.
 
-Proyecto de aula de **Ingeniería de Software** (2026).
+Proyecto de aula de **Ingeniería de Software**.
 
 **Integrantes:** Alejandro Agamez · Tatiana Marrugo · Esteban Ramírez
 
