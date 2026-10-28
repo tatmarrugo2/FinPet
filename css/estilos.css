@@ -113,3 +113,6 @@ button:hover { opacity: 0.9; }
     color: var(--verde);
     font-weight: bold;
 }
+
+/* Hace que todo lo que tenga "hidden" se oculte de verdad */
+[hidden] { display: none !important; }
