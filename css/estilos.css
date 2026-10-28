@@ -208,3 +208,11 @@ button:hover { opacity: 0.9; }
     .grafico { gap: 4px; }
     .barra-ing, .barra-gas { width: 10px; }
 }
+
+/* Salto de la mascota al registrar */
+.salta { animation: salto 0.6s ease; }
+@keyframes salto {
+    0%   { transform: translateY(0); }
+    40%  { transform: translateY(-20px) scale(1.1); }
+    100% { transform: translateY(0); }
+}

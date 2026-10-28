@@ -95,6 +95,7 @@ function mostrarApp() {
     document.getElementById("usuario-nombre").textContent = usuario.nombre;
     pantallaAcceso.hidden = true;
     pantallaApp.hidden = false;
+        actualizarTodo();
 }
 
 // ===== 7. CERRAR SESIÓN =====
@@ -198,13 +199,127 @@ document.getElementById("form-movimiento").addEventListener("submit", function (
     document.getElementById("mov-monto").value = "";
     document.getElementById("mov-desc").value = "";
     actualizarTodo();
+    mensajeMascota(movimiento);
     mostrarVista("vista-inicio");
 });
 
 // ===== 12. ACTUALIZAR PANTALLAS =====
-// (por ahora solo muestra los datos en la consola; en el siguiente paso la completamos)
+// Muestra un número como pesos colombianos: 15000 → $ 15.000
+function pesos(numero) {
+    return numero.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+}
+
+// Suma los montos de una lista de movimientos de un tipo
+function sumar(lista, tipo) {
+    return lista.filter(m => m.tipo === tipo).reduce((total, m) => total + m.monto, 0);
+}
+
 function actualizarTodo() {
-    console.log("Movimientos del usuario:", misMovimientos());
+    const movimientos = misMovimientos();
+    const mesActual = hoy().slice(0, 7); // ejemplo: "2026-10"
+    const delMes = movimientos.filter(m => m.fecha.slice(0, 7) === mesActual);
+
+    const ingresos = sumar(delMes, "ingreso");
+    const gastos = sumar(delMes, "gasto");
+    const saldo = ingresos - gastos;
+
+    // Resumen del mes
+    document.getElementById("total-ingresos").textContent = pesos(ingresos);
+    document.getElementById("total-gastos").textContent = pesos(gastos);
+    const saldoEl = document.getElementById("saldo");
+    saldoEl.textContent = pesos(saldo);
+    saldoEl.style.color = saldo < 0 ? "var(--rojo)" : "var(--texto)";
+
+    actualizarMascota(movimientos, ingresos, gastos);
+    dibujarGrafico(movimientos);
+}
+
+// ===== 13. LA MASCOTA (RF6) =====
+function actualizarMascota(movimientos, ingresos, gastos) {
+    let cara, estado, mensaje;
+
+    if (movimientos.length === 0) {
+        cara = "😐"; estado = "tranquilo";
+        mensaje = "¡Hola! Registra tu primer movimiento y empezamos.";
+    } else if (ingresos === 0 && gastos > 0) {
+        cara = "😢"; estado = "triste";
+        mensaje = "Este mes solo hay gastos. ¿Registraste tus ingresos?";
+    } else {
+        const porcentaje = ingresos > 0 ? Math.round((gastos / ingresos) * 100) : 0;
+
+        if (porcentaje <= 70) {
+            cara = "😄"; estado = "feliz";
+            mensaje = "¡Vas muy bien! Has gastado el " + porcentaje + "% de tus ingresos este mes.";
+        } else if (porcentaje <= 100) {
+            cara = "😐"; estado = "preocupado";
+            mensaje = "Cuidado, ya gastaste el " + porcentaje + "% de lo que te entró este mes.";
+        } else {
+            cara = "😢"; estado = "triste";
+            mensaje = "Este mes gastas más de lo que te entra (" + porcentaje + "%). ¡Revisemos juntos!";
+        }
+    }
+
+    document.getElementById("mascota").textContent = cara;
+    document.getElementById("mascota-estado").textContent = estado;
+    document.getElementById("mascota-mensaje").textContent = mensaje;
+}
+
+// ===== 14. MENSAJE AL REGISTRAR (RF7) =====
+function mensajeMascota(movimiento) {
+    let mensaje;
+
+    if (movimiento.tipo === "ingreso") {
+        mensaje = "¡Entró dinero! 🎉 Intenta guardar una parte antes de gastarla.";
+    } else if (movimiento.categoria === "Comida fuera de casa" || movimiento.categoria === "Entretenimiento") {
+        mensaje = "Anotado: " + pesos(movimiento.monto) + " en " + movimiento.categoria + ". Ojo, esa categoría crece rápido 👀";
+    } else {
+        mensaje = "¡Bien! Registraste " + pesos(movimiento.monto) + " en " + movimiento.categoria + ". Así se crea el hábito 💪";
+    }
+
+    document.getElementById("mascota-mensaje").textContent = mensaje;
+
+    // Animación de salto
+    const mascota = document.getElementById("mascota");
+    mascota.classList.remove("salta");
+    void mascota.offsetWidth; // reinicia la animación
+    mascota.classList.add("salta");
+}
+
+// ===== 15. GRÁFICO DE COMPARACIÓN MENSUAL =====
+function dibujarGrafico(movimientos) {
+    const meses = [];
+    const ahora = new Date();
+
+    // Arma la lista de los últimos 6 meses
+    for (let i = 5; i >= 0; i--) {
+        const d = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1);
+        const clave = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+        const delMes = movimientos.filter(m => m.fecha.slice(0, 7) === clave);
+        meses.push({
+            nombre: d.toLocaleString("es-CO", { month: "short" }),
+            ingresos: sumar(delMes, "ingreso"),
+            gastos: sumar(delMes, "gasto")
+        });
+    }
+
+    // El valor más alto define el 100% de altura
+    const maximo = Math.max(1, ...meses.map(m => Math.max(m.ingresos, m.gastos)));
+
+    let html = "";
+    meses.forEach(function (m) {
+        const altoIng = (m.ingresos / maximo) * 100;
+        const altoGas = (m.gastos / maximo) * 100;
+        html += `
+            <div class="mes">
+                <div class="barras">
+                    <div class="barra-ing" style="height:${altoIng}%" title="Ingresos: ${pesos(m.ingresos)}"></div>
+                    <div class="barra-gas" style="height:${altoGas}%" title="Gastos: ${pesos(m.gastos)}"></div>
+                </div>
+                <span class="mes-nombre">${m.nombre}</span>
+            </div>`;
+    });
+
+    document.getElementById("grafico").innerHTML = html;
 }
 
 // ===== 8. AL ABRIR LA PÁGINA =====
