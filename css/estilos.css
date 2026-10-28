@@ -116,3 +116,95 @@ button:hover { opacity: 0.9; }
 
 /* Hace que todo lo que tenga "hidden" se oculte de verdad */
 [hidden] { display: none !important; }
+
+/* ===== BARRA SUPERIOR ===== */
+.barra {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: var(--blanco);
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--borde);
+    flex-wrap: wrap;
+}
+.logo-chico { font-size: 1.6rem; font-weight: bold; color: var(--verde); }
+.menu { display: flex; gap: 6px; flex: 1; }
+.menu-btn {
+    background: none;
+    color: var(--gris);
+    margin: 0;
+    padding: 8px 16px;
+}
+.menu-btn.activo { background: var(--verde-claro); color: var(--verde); }
+.usuario { display: flex; align-items: center; gap: 10px; font-weight: bold; }
+.btn-salir { margin: 0; padding: 8px 14px; background: var(--texto); }
+
+/* ===== RECORDATORIO ===== */
+.recordatorio {
+    background: #FCEFD3;
+    border-bottom: 2px solid var(--amarillo);
+    padding: 10px 20px;
+    font-weight: bold;
+}
+
+/* ===== CONTENIDO ===== */
+.contenido { max-width: 1000px; margin: 0 auto; padding: 20px; }
+.vista { display: flex; flex-direction: column; gap: 16px; }
+.fila { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; }
+.fila-chica { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tarjeta-ancha { max-width: none; }
+.contenido .tarjeta { max-width: none; }
+#form-movimiento { max-width: 480px; margin: 0 auto; }
+
+.gris { color: var(--gris); margin: 0; }
+.verde { color: var(--verde); font-weight: bold; font-size: 1.2rem; margin: 0; }
+.rojo { color: var(--rojo); font-weight: bold; font-size: 1.2rem; margin: 0; }
+.saldo { font-size: 2.2rem; font-weight: bold; margin: 4px 0 12px; }
+
+/* ===== MASCOTA ===== */
+.mascota-tarjeta { flex-direction: row; align-items: center; gap: 20px; background: #FFF8E6; }
+.mascota { font-size: 5.5rem; line-height: 1; }
+.burbuja {
+    background: var(--blanco);
+    border: 2px solid var(--borde);
+    border-radius: 14px;
+    padding: 10px 14px;
+    font-weight: bold;
+}
+
+/* ===== GRÁFICO DE BARRAS ===== */
+.grafico {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    height: 200px;
+    align-items: end;
+    border-bottom: 2px solid var(--borde);
+    margin-top: 10px;
+}
+.mes { display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
+.barras { display: flex; gap: 4px; align-items: flex-end; height: 100%; }
+.barra-ing, .barra-gas { width: 18px; border-radius: 6px 6px 0 0; min-height: 2px; }
+.barra-ing { background: var(--verde); }
+.barra-gas { background: var(--rojo); }
+.mes-nombre { font-size: 0.8rem; color: var(--gris); font-weight: bold; margin-top: 4px; }
+
+/* ===== HISTORIAL ===== */
+.filtros { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
+.filtros select, .filtros input { width: auto; flex: 1; min-width: 150px; }
+.tabla-caja { overflow-x: auto; }
+.tabla { width: 100%; border-collapse: collapse; min-width: 520px; }
+.tabla th { text-align: left; color: var(--gris); font-size: 0.85rem; padding: 8px; border-bottom: 2px solid var(--borde); }
+.tabla td { padding: 10px 8px; border-bottom: 1px solid var(--borde); }
+.btn-borrar { background: none; color: var(--gris); margin: 0; padding: 4px 8px; }
+.btn-borrar:hover { background: var(--rojo-claro); color: var(--rojo); }
+
+/* ===== CELULAR (RNF-05) ===== */
+@media (max-width: 700px) {
+    .fila { grid-template-columns: 1fr; }
+    .mascota-tarjeta { flex-direction: column; text-align: center; }
+    .menu { order: 3; flex-basis: 100%; justify-content: space-around; }
+    .usuario { margin-left: auto; }
+    .grafico { gap: 4px; }
+    .barra-ing, .barra-gas { width: 10px; }
+}
