@@ -16,13 +16,16 @@ import {
     query,
     where,
     writeBatch,
-    setDoc
+    setDoc,
+    updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
  
 // Copia en memoria de los movimientos del usuario (se llena desde Firestore)
 let movimientos = [];
 // Copia en memoria de los presupuestos del usuario
 let presupuestos = [];
+// Copia en memoria de las metas de ahorro del usuario
+let metas = [];
  
 // ===== 2. ELEMENTOS DE LA PÁGINA =====
 const pantallaAcceso = document.getElementById("pantalla-acceso");
@@ -241,6 +244,8 @@ function actualizarTodo() {
     dibujarHistorial();
     revisarRecordatorio();
     dibujarPresupuestos();
+    dibujarTorta();
+    dibujarMetas();
 }
  
 // ===== 12. LA MASCOTA (RF6) =====
@@ -465,9 +470,15 @@ document.getElementById("btn-ejemplo").addEventListener("click", async function 
             lote.set(doc(db, "presupuestos", uid + "_" + p[0]), { uid, categoria: p[0], limite: p[1] });
         });
  
+    // Meta de ahorro de ejemplo (id fijo para que no se duplique)
+    lote.set(doc(db, "metas", uid + "_ejemplo"), {
+        uid, nombre: "Portátil nuevo", objetivo: 2500000, ahorrado: 900000
+    });
+ 
     try {
         await lote.commit();
         await cargarPresupuestos();
+        await cargarMetas();
         await cargarMovimientos();
         mostrarVista("vista-inicio");
     } catch (err) {
@@ -606,7 +617,227 @@ document.getElementById("lista-presupuestos").addEventListener("click", async fu
     }
 });
  
-// ===== 19. AL ABRIR LA PÁGINA: ¿HAY ALGUIEN CON SESIÓN? =====
+// ===== 19. GRÁFICO DE TORTA: GASTOS POR CATEGORÍA =====
+// Usa la librería Chart.js (se carga en el index.html)
+let graficoTorta = null;
+ 
+const COLORES_CATEGORIA = {
+    "Comida": "#0C7A5E",
+    "Comida fuera de casa": "#D2543A",
+    "Transporte": "#F2B33D",
+    "Entretenimiento": "#7B61C9",
+    "Estudio": "#2F80C9",
+    "Servicios": "#3BA99C",
+    "Ropa": "#E07BB0",
+    "Salud": "#8B5E3C",
+    "Otros": "#9AA8A3"
+};
+ 
+function dibujarTorta() {
+    const canvas = document.getElementById("grafico-torta");
+    const vacio = document.getElementById("torta-vacio");
+    const mesActual = hoy().slice(0, 7);
+ 
+    // Suma los gastos del mes por categoría
+    const totales = {};
+    movimientos
+        .filter(m => m.tipo === "gasto" && m.fecha.slice(0, 7) === mesActual)
+        .forEach(m => totales[m.categoria] = (totales[m.categoria] || 0) + m.monto);
+ 
+    // De la categoría más grande a la más pequeña
+    const categorias = Object.keys(totales).sort((a, b) => totales[b] - totales[a]);
+ 
+    // Borra el gráfico anterior antes de dibujar uno nuevo
+    if (graficoTorta) {
+        graficoTorta.destroy();
+        graficoTorta = null;
+    }
+ 
+    if (categorias.length === 0) {
+        canvas.hidden = true;
+        vacio.hidden = false;
+        return;
+    }
+    canvas.hidden = false;
+    vacio.hidden = true;
+ 
+    if (typeof Chart === "undefined") return; // la librería no cargó (sin internet)
+ 
+    graficoTorta = new Chart(canvas, {
+        type: "doughnut",
+        data: {
+            labels: categorias,
+            datasets: [{
+                data: categorias.map(c => totales[c]),
+                backgroundColor: categorias.map(c => COLORES_CATEGORIA[c] || "#9AA8A3"),
+                borderColor: "#FFFFFF",
+                borderWidth: 2
+            }]
+        },
+        options: {
+            cutout: "55%",
+            plugins: {
+                legend: { position: "bottom" },
+                tooltip: {
+                    callbacks: {
+                        // Muestra el monto en pesos y el porcentaje del total
+                        label: function (ctx) {
+                            const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                            const porcentaje = Math.round((ctx.parsed / total) * 100);
+                            return " " + ctx.label + ": " + pesos(ctx.parsed) + " (" + porcentaje + "%)";
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+ 
+// ===== 20. METAS DE AHORRO =====
+async function cargarMetas() {
+    const consulta = query(collection(db, "metas"), where("uid", "==", auth.currentUser.uid));
+    const resultado = await getDocs(consulta);
+    metas = resultado.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+ 
+// Pepo habla en el inicio y también en la sección de metas
+function pepoDice(texto) {
+    document.getElementById("mascota-mensaje").textContent = texto;
+    const burbujaMetas = document.getElementById("metas-mensaje");
+    burbujaMetas.textContent = "🦉 " + texto;
+    burbujaMetas.hidden = false;
+ 
+    const mascota = document.getElementById("mascota");
+    mascota.classList.remove("salta");
+    void mascota.offsetWidth;
+    mascota.classList.add("salta");
+}
+ 
+// Crear una meta nueva
+document.getElementById("form-meta").addEventListener("submit", async function (e) {
+    e.preventDefault();
+ 
+    const nombre = document.getElementById("meta-nombre").value.trim();
+    const objetivo = Number(document.getElementById("meta-objetivo").value);
+    const error = document.getElementById("meta-error");
+ 
+    if (nombre === "") {
+        error.textContent = "Ponle un nombre a tu meta.";
+        return;
+    }
+    if (!objetivo || objetivo <= 0) {
+        error.textContent = "Escribe un valor objetivo mayor a 0.";
+        return;
+    }
+ 
+    const datos = { uid: auth.currentUser.uid, nombre: nombre, objetivo: objetivo, ahorrado: 0 };
+ 
+    try {
+        const referencia = await addDoc(collection(db, "metas"), datos);
+        metas.push({ id: referencia.id, ...datos });
+ 
+        error.textContent = "";
+        document.getElementById("meta-nombre").value = "";
+        document.getElementById("meta-objetivo").value = "";
+        dibujarMetas();
+        pepoDice("¡Nueva meta: " + nombre + "! Vamos por esos " + pesos(objetivo) + " 💪");
+    } catch (err) {
+        console.error(err);
+        error.textContent = "No se pudo guardar. Revisa las reglas de Firestore o tu conexión.";
+    }
+});
+ 
+// Dibuja las tarjetas de las metas con su barra de progreso
+function dibujarMetas() {
+    const contenedor = document.getElementById("lista-metas");
+ 
+    if (metas.length === 0) {
+        contenedor.innerHTML = '<p class="gris">Aún no tienes metas. Crea la primera arriba.</p>';
+        return;
+    }
+ 
+    contenedor.innerHTML = metas.map(function (m) {
+        const porcentaje = Math.round((m.ahorrado / m.objetivo) * 100);
+        const completa = m.ahorrado >= m.objetivo;
+ 
+        const abajo = completa
+            ? '<p class="meta-cumplida">🎉 ¡Meta cumplida!</p>'
+            : `<div class="meta-abono">
+                   <input type="number" id="abono-${m.id}" placeholder="Monto a abonar">
+                   <button class="btn-abonar" data-id="${m.id}">Abonar</button>
+               </div>`;
+ 
+        return `
+            <div class="meta-item ${completa ? "completa" : ""}">
+                <div class="pres-cabeza">
+                    <b>${escapar(m.nombre)}</b>
+                    <button class="btn-borrar" data-id="${m.id}" title="Eliminar meta">🗑</button>
+                </div>
+                <div class="pres-pista">
+                    <div class="meta-barra" style="width:${Math.min(porcentaje, 100)}%"></div>
+                </div>
+                <div class="pres-pie">
+                    <span>${pesos(m.ahorrado)} de ${pesos(m.objetivo)} (${porcentaje}%)</span>
+                    <span>${completa ? "" : "Te faltan " + pesos(m.objetivo - m.ahorrado)}</span>
+                </div>
+                ${abajo}
+            </div>`;
+    }).join("");
+}
+ 
+// Botones de cada meta: abonar o eliminar
+document.getElementById("lista-metas").addEventListener("click", async function (e) {
+    // --- Abonar ---
+    const btnAbonar = e.target.closest(".btn-abonar");
+    if (btnAbonar) {
+        const id = btnAbonar.dataset.id;
+        const meta = metas.find(m => m.id === id);
+        const monto = Number(document.getElementById("abono-" + id).value);
+ 
+        if (!monto || monto <= 0) {
+            pepoDice("Escribe cuánto quieres abonar a " + meta.nombre + ".");
+            return;
+        }
+ 
+        const nuevoAhorrado = meta.ahorrado + monto;
+        btnAbonar.disabled = true;
+ 
+        try {
+            await updateDoc(doc(db, "metas", id), { ahorrado: nuevoAhorrado });
+            meta.ahorrado = nuevoAhorrado;
+            dibujarMetas();
+ 
+            if (nuevoAhorrado >= meta.objetivo) {
+                pepoDice("🎉 ¡Lo lograste! Cumpliste tu meta: " + meta.nombre + ". ¡Estoy muy orgulloso!");
+            } else {
+                const porcentaje = Math.round((nuevoAhorrado / meta.objetivo) * 100);
+                pepoDice("¡Abonaste " + pesos(monto) + " a " + meta.nombre + "! Ya vas en el " + porcentaje + "%.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("No se pudo guardar el abono. Revisa tu conexión.");
+            btnAbonar.disabled = false;
+        }
+        return;
+    }
+ 
+    // --- Eliminar ---
+    const btnBorrar = e.target.closest(".btn-borrar");
+    if (btnBorrar) {
+        if (!confirm("¿Eliminar esta meta?")) return;
+        const id = btnBorrar.dataset.id;
+        try {
+            await deleteDoc(doc(db, "metas", id));
+            metas = metas.filter(m => m.id !== id);
+            dibujarMetas();
+        } catch (err) {
+            console.error(err);
+            alert("No se pudo eliminar. Revisa tu conexión.");
+        }
+    }
+});
+ 
+// ===== 21. AL ABRIR LA PÁGINA: ¿HAY ALGUIEN CON SESIÓN? =====
 // Firebase avisa cada vez que alguien entra o sale
 onAuthStateChanged(auth, async function (usuario) {
     if (usuario) {
@@ -616,6 +847,7 @@ onAuthStateChanged(auth, async function (usuario) {
         mostrarVista("vista-inicio");
         try {
             await cargarPresupuestos();
+            await cargarMetas();
             await cargarMovimientos();
         } catch (err) {
             console.error(err);
@@ -624,8 +856,8 @@ onAuthStateChanged(auth, async function (usuario) {
     } else {
         movimientos = [];
         presupuestos = [];
+        metas = [];
         pantallaApp.hidden = true;
         pantallaAcceso.hidden = false;
     }
 });
- 
