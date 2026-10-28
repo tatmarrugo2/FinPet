@@ -7,7 +7,37 @@
     <link rel="stylesheet" href="css/estilos.css">
 </head>
 <body>
-    <h1>FinPet</h1
+        <!-- PANTALLA DE ACCESO -->
+    <section id="pantalla-acceso" class="acceso">
+        <h1 class="logo">FinPet</h1>
+        <p class="lema">Tus finanzas, con un amigo que te acompaña.</p>
+
+        <!-- Formulario para iniciar sesión -->
+        <form id="form-login" class="tarjeta">
+            <h2>Iniciar sesión</h2>
+            <label>Correo</label>
+            <input type="email" id="login-correo" placeholder="tucorreo@ejemplo.com">
+            <label>Contraseña</label>
+            <input type="password" id="login-clave" placeholder="Tu contraseña">
+            <p id="login-error" class="error"></p>
+            <button type="submit">Entrar</button>
+            <p class="cambiar">¿No tienes cuenta? <a href="#" id="ir-registro">Crear una</a></p>
+        </form>
+
+        <!-- Formulario para crear cuenta (empieza oculto) -->
+        <form id="form-registro" class="tarjeta" hidden>
+            <h2>Crear cuenta</h2>
+            <label>Nombre</label>
+            <input type="text" id="reg-nombre" placeholder="¿Cómo te llamas?">
+            <label>Correo</label>
+            <input type="email" id="reg-correo" placeholder="tucorreo@ejemplo.com">
+            <label>Contraseña</label>
+            <input type="password" id="reg-clave" placeholder="Mínimo 6 caracteres">
+            <p id="registro-error" class="error"></p>
+            <button type="submit">Crear mi cuenta</button>
+            <p class="cambiar">¿Ya tienes cuenta? <a href="#" id="ir-login">Inicia sesión</a></p>
+        </form>
+    </section>
     
     <script src="js/app.js"></script>
 </body>

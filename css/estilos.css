@@ -1,1 +1,115 @@
-body { background: #EEF4F1; font-family: sans-serif; }
+/* ===== COLORES Y FUENTES (se usan en toda la app) ===== */
+:root {
+    --fondo: #EEF4F1;
+    --blanco: #FFFFFF;
+    --texto: #15302A;
+    --gris: #567068;
+    --borde: #D5E3DD;
+    --verde: #0C7A5E;
+    --verde-claro: #DDF1E9;
+    --amarillo: #F2B33D;
+    --rojo: #D2543A;
+    --rojo-claro: #FBE4DE;
+}
+
+/* ===== GENERAL ===== */
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--fondo);
+    color: var(--texto);
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+/* ===== PANTALLA DE ACCESO ===== */
+.acceso {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.logo {
+    font-size: 3.5rem;
+    color: var(--verde);
+    margin: 0;
+}
+
+.lema {
+    color: var(--gris);
+    margin: 4px 0 24px;
+}
+
+/* ===== TARJETAS (cajas blancas) ===== */
+.tarjeta {
+    background: var(--blanco);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.tarjeta h2 { margin: 0 0 8px; }
+
+/* ===== CAMPOS DE TEXTO ===== */
+label {
+    font-weight: bold;
+    font-size: 0.9rem;
+    margin-top: 8px;
+}
+
+input, select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--borde);
+    border-radius: 10px;
+    font-size: 1rem;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: var(--verde);
+}
+
+/* ===== BOTONES ===== */
+button {
+    background: var(--verde);
+    color: white;
+    border: none;
+    border-radius: 999px;
+    padding: 12px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 12px;
+}
+
+button:hover { opacity: 0.9; }
+
+/* ===== MENSAJES DE ERROR ===== */
+.error {
+    color: var(--rojo);
+    font-weight: bold;
+    font-size: 0.9rem;
+    margin: 4px 0 0;
+    min-height: 1em;
+}
+
+/* ===== ENLACE PARA CAMBIAR DE FORMULARIO ===== */
+.cambiar {
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--gris);
+}
+
+.cambiar a {
+    color: var(--verde);
+    font-weight: bold;
+}
