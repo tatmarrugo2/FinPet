@@ -232,6 +232,8 @@ function actualizarTodo() {
 
     actualizarMascota(movimientos, ingresos, gastos);
     dibujarGrafico(movimientos);
+    dibujarHistorial();
+    revisarRecordatorio(movimientos);
 }
 
 // ===== 13. LA MASCOTA (RF6) =====
@@ -321,6 +323,111 @@ function dibujarGrafico(movimientos) {
 
     document.getElementById("grafico").innerHTML = html;
 }
+
+// ===== 16. HISTORIAL CON FILTROS (RF9) =====
+const fTipo = document.getElementById("f-tipo");
+const fCategoria = document.getElementById("f-categoria");
+const fMes = document.getElementById("f-mes");
+
+// Llena el filtro con todas las categorías (sin repetir "Otros")
+const todasCategorias = new Set([...CATEGORIAS.gasto, ...CATEGORIAS.ingreso]);
+todasCategorias.forEach(function (cat) {
+    const opcion = document.createElement("option");
+    opcion.value = cat;
+    opcion.textContent = cat;
+    fCategoria.appendChild(opcion);
+});
+
+function dibujarHistorial() {
+    let lista = misMovimientos();
+
+    // Aplica los filtros que estén seleccionados
+    if (fTipo.value) lista = lista.filter(m => m.tipo === fTipo.value);
+    if (fCategoria.value) lista = lista.filter(m => m.categoria === fCategoria.value);
+    if (fMes.value) lista = lista.filter(m => m.fecha.slice(0, 7) === fMes.value);
+
+    // Ordena del más reciente al más antiguo
+    lista.sort((a, b) => b.fecha.localeCompare(a.fecha));
+
+    const tabla = document.getElementById("tabla-historial");
+
+    if (lista.length === 0) {
+        tabla.innerHTML = '<tr><td colspan="6" class="gris">No hay movimientos con esos filtros.</td></tr>';
+        return;
+    }
+
+    tabla.innerHTML = lista.map(m => `
+        <tr>
+            <td>${m.fecha}</td>
+            <td>${m.tipo === "gasto" ? "Gasto" : "Ingreso"}</td>
+            <td>${m.categoria}</td>
+            <td>${m.descripcion || "—"}</td>
+            <td class="${m.tipo === "gasto" ? "rojo" : "verde"}">
+                ${m.tipo === "gasto" ? "-" : "+"} ${pesos(m.monto)}
+            </td>
+            <td><button class="btn-borrar" onclick="borrarMovimiento(${m.id})">🗑</button></td>
+        </tr>`).join("");
+}
+
+// Cada vez que cambie un filtro, se vuelve a dibujar la tabla
+fTipo.addEventListener("change", dibujarHistorial);
+fCategoria.addEventListener("change", dibujarHistorial);
+fMes.addEventListener("change", dibujarHistorial);
+
+// Eliminar un movimiento
+function borrarMovimiento(id) {
+    if (!confirm("¿Eliminar este movimiento?")) return;
+    const todos = leer("finpet_movimientos", []).filter(m => m.id !== id);
+    guardar("finpet_movimientos", todos);
+    actualizarTodo();
+}
+
+// ===== 17. RECORDATORIO DIARIO (RF8) =====
+// Si hoy no hay ningún movimiento registrado, muestra el aviso amarillo
+function revisarRecordatorio(movimientos) {
+    const registroHoy = movimientos.some(m => m.fecha === hoy());
+    document.getElementById("recordatorio").hidden = registroHoy;
+}
+
+// ===== 18. DATOS DE EJEMPLO PARA LA DEMO =====
+document.getElementById("btn-ejemplo").addEventListener("click", function () {
+    const correo = leer("finpet_sesion", null);
+    const todos = leer("finpet_movimientos", []);
+    const ahora = new Date();
+
+    // Gastos típicos de un mes: [categoría, monto, día, descripción]
+    const gastosMes = [
+        ["Comida", 280000, 3, "Mercado"],
+        ["Transporte", 120000, 5, "Recargas TransCaribe"],
+        ["Comida fuera de casa", 150000, 12, "Almuerzos"],
+        ["Entretenimiento", 90000, 15, "Cine y salidas"],
+        ["Servicios", 85000, 8, "Plan de celular"],
+        ["Estudio", 60000, 20, "Fotocopias y materiales"]
+    ];
+
+    for (let i = 5; i >= 0; i--) {
+        const d = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1);
+        const mes = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+        // En el mes actual solo se usan días que ya pasaron
+        const diaMax = i === 0 ? ahora.getDate() : 28;
+        const fecha = dia => mes + "-" + String(Math.min(dia, diaMax)).padStart(2, "0");
+
+        todos.push({ id: Date.now() + i * 100, correo, tipo: "ingreso", monto: 1200000,
+                     categoria: "Salario", fecha: fecha(1), descripcion: "Pago del mes" });
+
+        gastosMes.forEach(function (g, j) {
+            // Cada mes los gastos varían un poco para que el gráfico se vea real
+            const variacion = 1 + ((i * 7 + j * 3) % 5 - 2) / 10;
+            todos.push({ id: Date.now() + i * 100 + j + 1, correo, tipo: "gasto",
+                         monto: Math.round(g[1] * variacion / 1000) * 1000,
+                         categoria: g[0], fecha: fecha(g[2]), descripcion: g[3] });
+        });
+    }
+
+    guardar("finpet_movimientos", todos);
+    actualizarTodo();
+    mostrarVista("vista-inicio");
+});
 
 // ===== 8. AL ABRIR LA PÁGINA =====
 // Si ya había alguien con sesión abierta, entra directo
