@@ -171,8 +171,8 @@
                         <option value="ingreso">Ingreso</option>
                     </select>
 
-                    <label>Monto (COP)</label>
-                    <input type="number" id="mov-monto" placeholder="Ej: 15000">
+                    <label for="mov-monto">Monto (COP) <span class="ayuda">con punto, ej: 1.500.000</span></label>
+                    <input type="text" inputmode="numeric" class="campo-pesos" id="mov-monto" placeholder="Ej: 15.000">
 
                     <label>Categoría</label>
                     <select id="mov-categoria"></select>
@@ -197,8 +197,8 @@
                     <label for="pres-categoria">Categoría</label>
                     <select id="pres-categoria"></select>
 
-                    <label for="pres-limite">Límite mensual (COP)</label>
-                    <input type="number" id="pres-limite" placeholder="Ej: 300000">
+                    <label for="pres-limite">Límite mensual (COP) <span class="ayuda">con punto, ej: 300.000</span></label>
+                    <input type="text" inputmode="numeric" class="campo-pesos" id="pres-limite" placeholder="Ej: 300.000">
 
                     <p id="pres-error" class="error"></p>
                     <button type="submit">Guardar presupuesto</button>
@@ -219,8 +219,8 @@
                     <label for="meta-nombre">¿Qué quieres lograr?</label>
                     <input type="text" id="meta-nombre" maxlength="40" placeholder="Ej: Portátil nuevo">
 
-                    <label for="meta-objetivo">Valor objetivo (COP)</label>
-                    <input type="number" id="meta-objetivo" placeholder="Ej: 2500000">
+                    <label for="meta-objetivo">Valor objetivo (COP) <span class="ayuda">con punto, ej: 2.500.000</span></label>
+                    <input type="text" inputmode="numeric" class="campo-pesos" id="meta-objetivo" placeholder="Ej: 2.500.000">
 
                     <p id="meta-error" class="error"></p>
                     <button type="submit">Crear meta</button>

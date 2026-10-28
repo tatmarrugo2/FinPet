@@ -28,6 +28,25 @@ let presupuestos = [];
 // Copia en memoria de las metas de ahorro del usuario
 let metas = [];
  
+// ===== 1B. CAMPOS DE DINERO CON PUNTOS DE MIL =====
+// Convierte lo que se escribe en formato colombiano: 1500000 → 1.500.000
+function formatearMiles(texto) {
+    const digitos = String(texto).replace(/\D/g, ""); // deja solo los números
+    return digitos ? Number(digitos).toLocaleString("es-CO") : "";
+}
+ 
+// Lee un campo de dinero quitando los puntos: "1.500.000" → 1500000
+function leerPesos(id) {
+    return Number(document.getElementById(id).value.replace(/\./g, ""));
+}
+ 
+// Cualquier campo con la clase "campo-pesos" se formatea mientras se escribe
+document.addEventListener("input", function (e) {
+    if (e.target.classList.contains("campo-pesos")) {
+        e.target.value = formatearMiles(e.target.value);
+    }
+});
+ 
 // ===== 2. ELEMENTOS DE LA PÁGINA =====
 const pantallaAcceso = document.getElementById("pantalla-acceso");
 const pantallaApp = document.getElementById("pantalla-app");
@@ -211,7 +230,7 @@ function editarMovimiento(id) {
     selTipo.value = m.tipo;
     cargarCategorias();                 // carga las categorías de ese tipo
     selCategoria.value = m.categoria;
-    document.getElementById("mov-monto").value = m.monto;
+    document.getElementById("mov-monto").value = formatearMiles(m.monto);
     document.getElementById("mov-fecha").value = m.fecha;
     document.getElementById("mov-desc").value = m.descripcion || "";
     document.getElementById("mov-error").textContent = "";
@@ -242,7 +261,7 @@ document.getElementById("mov-cancelar").addEventListener("click", function () {
 formMovimiento.addEventListener("submit", async function (e) {
     e.preventDefault();
  
-    const monto = Number(document.getElementById("mov-monto").value);
+    const monto = leerPesos("mov-monto");
     const fecha = document.getElementById("mov-fecha").value;
     const error = document.getElementById("mov-error");
     const boton = botonGuardar;
@@ -669,7 +688,7 @@ document.getElementById("form-presupuesto").addEventListener("submit", async fun
     e.preventDefault();
  
     const categoria = selPresCategoria.value;
-    const limite = Number(document.getElementById("pres-limite").value);
+    const limite = leerPesos("pres-limite");
     const error = document.getElementById("pres-error");
  
     if (!limite || limite <= 0) {
@@ -858,7 +877,7 @@ document.getElementById("form-meta").addEventListener("submit", async function (
     e.preventDefault();
  
     const nombre = document.getElementById("meta-nombre").value.trim();
-    const objetivo = Number(document.getElementById("meta-objetivo").value);
+    const objetivo = leerPesos("meta-objetivo");
     const error = document.getElementById("meta-error");
  
     if (nombre === "") {
@@ -903,7 +922,7 @@ function dibujarMetas() {
         const abajo = completa
             ? '<p class="meta-cumplida">🎉 ¡Meta cumplida!</p>'
             : `<div class="meta-abono">
-                   <input type="number" id="abono-${m.id}" placeholder="Monto a abonar">
+                   <input type="text" inputmode="numeric" class="campo-pesos" id="abono-${m.id}" placeholder="Abono (ej: 50.000)">
                    <button class="btn-abonar" data-id="${m.id}">Abonar</button>
                </div>`;
  
@@ -932,7 +951,7 @@ document.getElementById("lista-metas").addEventListener("click", async function 
     if (btnAbonar) {
         const id = btnAbonar.dataset.id;
         const meta = metas.find(m => m.id === id);
-        const monto = Number(document.getElementById("abono-" + id).value);
+        const monto = leerPesos("abono-" + id);
  
         if (!monto || monto <= 0) {
             pepoDice("Escribe cuánto quieres abonar a " + meta.nombre + ".");

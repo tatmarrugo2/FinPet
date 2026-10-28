@@ -323,3 +323,9 @@ button:hover { opacity: 0.9; }
 .btn-editar { background: none; color: var(--gris); margin: 0; padding: 4px 8px; }
 .btn-editar:hover { background: var(--verde-claro); }
 .acciones { white-space: nowrap; }
+
+/* Indicación "(con punto)" al lado de los campos de dinero */
+.ayuda { font-weight: normal; color: var(--gris); font-size: 0.8rem; }
+.ayuda::before { content: "("; }
+.ayuda::after { content: ")"; }
+.campo-pesos { font-variant-numeric: tabular-nums; }
