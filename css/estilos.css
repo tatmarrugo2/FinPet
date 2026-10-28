@@ -218,3 +218,80 @@ button:hover { opacity: 0.9; }
 }
 
 .btn-ejemplo { background: var(--verde-claro); color: var(--verde); margin: 0 0 6px; align-self: flex-start; }
+
+/* ===== PEPO EL BÚHO ===== */
+.mascota { width: 140px; flex: none; font-size: initial; line-height: 0; }
+.mascota svg { width: 100%; height: auto; overflow: visible; }
+
+/* Colores de cada parte */
+.b-sombra   { fill: rgba(0, 0, 0, 0.1); }
+.b-cuerpo   { fill: #8B5E3C; stroke: #4A2E1A; stroke-width: 2.5; stroke-linejoin: round; }
+.b-ala      { fill: #6F4A2E; stroke: #4A2E1A; stroke-width: 2.5; }
+.b-panza    { fill: #E8D2B0; }
+.b-plumas   { fill: none; stroke: #C9A97E; stroke-width: 2; stroke-linecap: round; }
+.b-disco    { fill: #F6EBD9; stroke: #4A2E1A; stroke-width: 2; }
+.b-pupila   { fill: #2B1A0E; }
+.b-brillo   { fill: #FFFFFF; }
+.b-linea    { fill: none; stroke: #2B1A0E; stroke-width: 3.5; stroke-linecap: round; }
+.b-pico     { fill: #F2B33D; stroke: #4A2E1A; stroke-width: 2; stroke-linejoin: round; }
+.b-mejilla  { fill: #F28C6B; opacity: 0.5; }
+.b-patas    { fill: none; stroke: #E39A22; stroke-width: 3; stroke-linecap: round; }
+.b-lagrima  { fill: #6CB8E6; }
+
+/* Partes que solo aparecen en ciertos estados */
+.ojos-abiertos, .ojos-felices, .parpados, .cejas, .b-lagrima, .b-mejilla {
+    transition: opacity 0.3s, transform 0.3s;
+}
+.ojos-felices, .parpados, .cejas, .b-lagrima { opacity: 0; }
+
+/* FELIZ: ojos sonrientes y mejillas rosadas */
+.mascota[data-animo="feliz"] .ojos-abiertos { opacity: 0; }
+.mascota[data-animo="feliz"] .ojos-felices  { opacity: 1; }
+.mascota[data-animo="feliz"] .b-mejilla     { opacity: 0.9; }
+.mascota[data-animo="feliz"] svg { animation: brincar 1.4s ease-in-out infinite; }
+
+/* PREOCUPADO: cejas fruncidas */
+.mascota[data-animo="preocupado"] .cejas { opacity: 1; }
+
+/* TRISTE: párpados caídos, lágrima y cabeza inclinada */
+.mascota[data-animo="triste"] .parpados,
+.mascota[data-animo="triste"] .b-lagrima     { opacity: 1; }
+.mascota[data-animo="triste"] .ojos-abiertos { transform: translateY(3px); }
+.mascota[data-animo="triste"] .b-mejilla     { opacity: 0; }
+.mascota[data-animo="triste"] svg { transform: rotate(-4deg) translateY(4px); }
+
+/* TRANQUILO: parpadea de vez en cuando */
+.mascota[data-animo="tranquilo"] .ojos-abiertos {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: parpadear 4s infinite;
+}
+
+@keyframes brincar {
+    0%, 100% { transform: translateY(0); }
+    40%      { transform: translateY(-8px); }
+}
+@keyframes parpadear {
+    0%, 92%, 100% { transform: scaleY(1); }
+    95%           { transform: scaleY(0.1); }
+}
+
+/* Respeta a quienes desactivan las animaciones en su dispositivo */
+@media (prefers-reduced-motion: reduce) {
+    .mascota svg, .mascota .ojos-abiertos { animation: none !important; }
+}
+
+/* ===== PRESUPUESTOS ===== */
+#form-presupuesto { max-width: 480px; width: 100%; margin: 0 auto; }
+.lista-presupuestos { display: flex; flex-direction: column; gap: 18px; margin-top: 10px; }
+.pres-cabeza, .pres-pie { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pres-cabeza span { color: var(--gris); font-size: 0.9rem; }
+.pres-pista { height: 12px; background: var(--fondo); border-radius: 999px; overflow: hidden; margin: 6px 0; }
+.pres-barra { height: 100%; border-radius: 999px; background: var(--verde); transition: width 0.5s; }
+.pres-pie span { font-size: 0.85rem; font-weight: bold; color: var(--gris); }
+
+/* Amarillo al 80 %, rojo si se pasa */
+.pres-item.alerta .pres-barra { background: var(--amarillo); }
+.pres-item.alerta .pres-pie span { color: #B7791F; }
+.pres-item.excedido .pres-barra { background: var(--rojo); }
+.pres-item.excedido .pres-pie span { color: var(--rojo); }

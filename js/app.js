@@ -15,11 +15,14 @@ import {
     doc,
     query,
     where,
-    writeBatch
+    writeBatch,
+    setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
  
 // Copia en memoria de los movimientos del usuario (se llena desde Firestore)
 let movimientos = [];
+// Copia en memoria de los presupuestos del usuario
+let presupuestos = [];
  
 // ===== 2. ELEMENTOS DE LA PÁGINA =====
 const pantallaAcceso = document.getElementById("pantalla-acceso");
@@ -237,34 +240,43 @@ function actualizarTodo() {
     dibujarGrafico();
     dibujarHistorial();
     revisarRecordatorio();
+    dibujarPresupuestos();
 }
  
 // ===== 12. LA MASCOTA (RF6) =====
 function actualizarMascota(ingresos, gastos) {
-    let cara, estado, mensaje;
+    let estado, mensaje;
  
     if (movimientos.length === 0) {
-        cara = "😐"; estado = "tranquilo";
+        estado = "tranquilo";
         mensaje = "¡Hola! Registra tu primer movimiento y empezamos.";
     } else if (ingresos === 0 && gastos > 0) {
-        cara = "😢"; estado = "triste";
+        estado = "triste";
         mensaje = "Este mes solo hay gastos. ¿Registraste tus ingresos?";
     } else {
         const porcentaje = ingresos > 0 ? Math.round((gastos / ingresos) * 100) : 0;
  
         if (porcentaje <= 70) {
-            cara = "😄"; estado = "feliz";
+            estado = "feliz";
             mensaje = "¡Vas muy bien! Has gastado el " + porcentaje + "% de tus ingresos este mes.";
         } else if (porcentaje <= 100) {
-            cara = "😐"; estado = "preocupado";
+            estado = "preocupado";
             mensaje = "Cuidado, ya gastaste el " + porcentaje + "% de lo que te entró este mes.";
         } else {
-            cara = "😢"; estado = "triste";
+            estado = "triste";
             mensaje = "Este mes gastas más de lo que te entra (" + porcentaje + "%). ¡Revisemos juntos!";
         }
     }
  
-    document.getElementById("mascota").textContent = cara;
+    // Aunque vaya bien en general, si se pasó en alguna categoría, Pepo se preocupa
+    const excedidos = presupuestos.filter(p => gastadoEnMes(p.categoria) > p.limite);
+    if (excedidos.length > 0 && estado === "feliz") {
+        estado = "preocupado";
+        mensaje = "Vas bien en general, pero te pasaste del presupuesto en: " +
+                  excedidos.map(p => p.categoria).join(", ") + ".";
+    }
+ 
+    document.getElementById("mascota").dataset.animo = estado;
     document.getElementById("mascota-estado").textContent = estado;
     document.getElementById("mascota-mensaje").textContent = mensaje;
 }
@@ -272,8 +284,16 @@ function actualizarMascota(ingresos, gastos) {
 // ===== 13. MENSAJE AL REGISTRAR (RF7) =====
 function mensajeMascota(movimiento) {
     let mensaje;
+    // Si es un gasto, revisa cómo va el presupuesto de esa categoría
+    const pres = movimiento.tipo === "gasto" ? estadoPresupuesto(movimiento.categoria) : null;
  
-    if (movimiento.tipo === "ingreso") {
+    if (pres && pres.porcentaje > 100) {
+        mensaje = "¡Uy! Te pasaste del presupuesto de " + movimiento.categoria + ": llevas " +
+                  pesos(pres.gastado) + " de " + pesos(pres.limite) + " 😟";
+    } else if (pres && pres.porcentaje >= 80) {
+        mensaje = "Cuidado: ya usaste el " + pres.porcentaje + "% de tu presupuesto de " +
+                  movimiento.categoria + ". Te quedan " + pesos(pres.limite - pres.gastado) + ".";
+    } else if (movimiento.tipo === "ingreso") {
         mensaje = "¡Entró dinero! 🎉 Intenta guardar una parte antes de gastarla.";
     } else if (movimiento.categoria === "Comida fuera de casa" || movimiento.categoria === "Entretenimiento") {
         mensaje = "Anotado: " + pesos(movimiento.monto) + " en " + movimiento.categoria + ". Ojo, esa categoría crece rápido 👀";
@@ -439,8 +459,15 @@ document.getElementById("btn-ejemplo").addEventListener("click", async function 
         });
     }
  
+    // Presupuestos de ejemplo (el id combina usuario y categoría)
+    [["Comida fuera de casa", 160000], ["Entretenimiento", 85000], ["Transporte", 150000]]
+        .forEach(function (p) {
+            lote.set(doc(db, "presupuestos", uid + "_" + p[0]), { uid, categoria: p[0], limite: p[1] });
+        });
+ 
     try {
         await lote.commit();
+        await cargarPresupuestos();
         await cargarMovimientos();
         mostrarVista("vista-inicio");
     } catch (err) {
@@ -452,7 +479,134 @@ document.getElementById("btn-ejemplo").addEventListener("click", async function 
     }
 });
  
-// ===== 18. AL ABRIR LA PÁGINA: ¿HAY ALGUIEN CON SESIÓN? =====
+// ===== 18. PRESUPUESTO POR CATEGORÍA =====
+const selPresCategoria = document.getElementById("pres-categoria");
+ 
+// Solo las categorías de gasto tienen presupuesto
+CATEGORIAS.gasto.forEach(function (cat) {
+    const opcion = document.createElement("option");
+    opcion.value = cat;
+    opcion.textContent = cat;
+    selPresCategoria.appendChild(opcion);
+});
+ 
+// Cuánto se ha gastado este mes en una categoría
+function gastadoEnMes(categoria) {
+    const mesActual = hoy().slice(0, 7);
+    return movimientos
+        .filter(m => m.tipo === "gasto" && m.categoria === categoria && m.fecha.slice(0, 7) === mesActual)
+        .reduce((total, m) => total + m.monto, 0);
+}
+ 
+// Devuelve { limite, gastado, porcentaje } o null si la categoría no tiene presupuesto
+function estadoPresupuesto(categoria) {
+    const p = presupuestos.find(p => p.categoria === categoria);
+    if (!p) return null;
+    const gastado = gastadoEnMes(categoria);
+    return { limite: p.limite, gastado: gastado, porcentaje: Math.round((gastado / p.limite) * 100) };
+}
+ 
+// Trae de Firestore los presupuestos del usuario
+async function cargarPresupuestos() {
+    const consulta = query(collection(db, "presupuestos"), where("uid", "==", auth.currentUser.uid));
+    const resultado = await getDocs(consulta);
+    presupuestos = resultado.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+ 
+// Guardar o actualizar un presupuesto
+document.getElementById("form-presupuesto").addEventListener("submit", async function (e) {
+    e.preventDefault();
+ 
+    const categoria = selPresCategoria.value;
+    const limite = Number(document.getElementById("pres-limite").value);
+    const error = document.getElementById("pres-error");
+ 
+    if (!limite || limite <= 0) {
+        error.textContent = "Escribe un límite mayor a 0.";
+        return;
+    }
+ 
+    // El id combina usuario y categoría: así cada categoría tiene un solo presupuesto
+    // y si se guarda otra vez, se actualiza en lugar de duplicarse
+    const id = auth.currentUser.uid + "_" + categoria;
+    const datos = { uid: auth.currentUser.uid, categoria: categoria, limite: limite };
+ 
+    try {
+        await setDoc(doc(db, "presupuestos", id), datos);
+        presupuestos = presupuestos.filter(p => p.categoria !== categoria);
+        presupuestos.push({ id: id, ...datos });
+ 
+        error.textContent = "";
+        document.getElementById("pres-limite").value = "";
+        actualizarTodo();
+    } catch (err) {
+        console.error(err);
+        error.textContent = "No se pudo guardar. Revisa las reglas de Firestore o tu conexión.";
+    }
+});
+ 
+// Dibuja la lista de presupuestos con su barra de progreso
+function dibujarPresupuestos() {
+    const contenedor = document.getElementById("lista-presupuestos");
+ 
+    if (presupuestos.length === 0) {
+        contenedor.innerHTML = '<p class="gris">Aún no tienes presupuestos. Crea el primero arriba.</p>';
+        return;
+    }
+ 
+    // Primero los que van más llenos
+    const lista = presupuestos
+        .map(p => ({ ...p, ...estadoPresupuesto(p.categoria) }))
+        .sort((a, b) => b.porcentaje - a.porcentaje);
+ 
+    contenedor.innerHTML = lista.map(function (p) {
+        let nivel, texto;
+        if (p.porcentaje > 100) {
+            nivel = "excedido";
+            texto = "Te pasaste por " + pesos(p.gastado - p.limite);
+        } else if (p.porcentaje >= 80) {
+            nivel = "alerta";
+            texto = "Ojo: te quedan " + pesos(p.limite - p.gastado);
+        } else {
+            nivel = "ok";
+            texto = "Te quedan " + pesos(p.limite - p.gastado);
+        }
+ 
+        return `
+            <div class="pres-item ${nivel}">
+                <div class="pres-cabeza">
+                    <b>${escapar(p.categoria)}</b>
+                    <span>${pesos(p.gastado)} de ${pesos(p.limite)} (${p.porcentaje}%)</span>
+                </div>
+                <div class="pres-pista">
+                    <div class="pres-barra" style="width:${Math.min(p.porcentaje, 100)}%"></div>
+                </div>
+                <div class="pres-pie">
+                    <span>${texto}</span>
+                    <button class="btn-borrar" data-id="${p.id}" title="Eliminar presupuesto">🗑</button>
+                </div>
+            </div>`;
+    }).join("");
+}
+ 
+// Eliminar un presupuesto
+document.getElementById("lista-presupuestos").addEventListener("click", async function (e) {
+    const boton = e.target.closest(".btn-borrar");
+    if (!boton) return;
+    if (!confirm("¿Eliminar este presupuesto?")) return;
+ 
+    const id = boton.dataset.id;
+    try {
+        await deleteDoc(doc(db, "presupuestos", id));
+        presupuestos = presupuestos.filter(p => p.id !== id);
+        actualizarTodo();
+    } catch (err) {
+        console.error(err);
+        alert("No se pudo eliminar. Revisa tu conexión.");
+    }
+});
+ 
+// ===== 19. AL ABRIR LA PÁGINA: ¿HAY ALGUIEN CON SESIÓN? =====
 // Firebase avisa cada vez que alguien entra o sale
 onAuthStateChanged(auth, async function (usuario) {
     if (usuario) {
@@ -461,6 +615,7 @@ onAuthStateChanged(auth, async function (usuario) {
         pantallaApp.hidden = false;
         mostrarVista("vista-inicio");
         try {
+            await cargarPresupuestos();
             await cargarMovimientos();
         } catch (err) {
             console.error(err);
@@ -468,7 +623,9 @@ onAuthStateChanged(auth, async function (usuario) {
         }
     } else {
         movimientos = [];
+        presupuestos = [];
         pantallaApp.hidden = true;
         pantallaAcceso.hidden = false;
     }
 });
+ 

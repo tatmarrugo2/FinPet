@@ -48,6 +48,7 @@
             <nav class="menu">
                 <button class="menu-btn activo" data-vista="vista-inicio">Inicio</button>
                 <button class="menu-btn" data-vista="vista-registrar">Registrar</button>
+                                <button class="menu-btn" data-vista="vista-presupuesto">Presupuesto</button>
                 <button class="menu-btn" data-vista="vista-historial">Historial</button>
             </nav>
             <div class="usuario">
@@ -68,7 +69,53 @@
                 <div class="fila">
                     <!-- Mascota (RF6 y RF7) -->
                     <div class="tarjeta mascota-tarjeta">
-                        <div id="mascota" class="mascota">😐</div>
+                                                <div id="mascota" class="mascota" data-animo="tranquilo">
+                            <svg viewBox="0 0 120 132" role="img" aria-label="Pepo, el búho">
+                                <!-- sombra -->
+                                <ellipse cx="60" cy="127" rx="32" ry="4" class="b-sombra"/>
+                                <!-- penachos (orejas) -->
+                                <path d="M26 42 L18 8 L48 24 Z" class="b-cuerpo"/>
+                                <path d="M94 42 L102 8 L72 24 Z" class="b-cuerpo"/>
+                                <!-- alas -->
+                                <ellipse cx="18" cy="80" rx="12" ry="28" class="b-ala"/>
+                                <ellipse cx="102" cy="80" rx="12" ry="28" class="b-ala"/>
+                                <!-- cuerpo y panza -->
+                                <ellipse cx="60" cy="70" rx="44" ry="52" class="b-cuerpo"/>
+                                <ellipse cx="60" cy="90" rx="28" ry="28" class="b-panza"/>
+                                <path d="M48 82 q4 4 8 0 M64 82 q4 4 8 0 M56 94 q4 4 8 0 M48 106 q4 4 8 0 M64 106 q4 4 8 0" class="b-plumas"/>
+                                <!-- contorno de los ojos -->
+                                <circle cx="40" cy="48" r="17" class="b-disco"/>
+                                <circle cx="80" cy="48" r="17" class="b-disco"/>
+                                <!-- ojos abiertos -->
+                                <g class="ojos-abiertos">
+                                    <circle cx="40" cy="49" r="9" class="b-pupila"/>
+                                    <circle cx="80" cy="49" r="9" class="b-pupila"/>
+                                    <circle cx="43" cy="46" r="3" class="b-brillo"/>
+                                    <circle cx="83" cy="46" r="3" class="b-brillo"/>
+                                </g>
+                                <!-- ojos felices (cerrados sonriendo) -->
+                                <g class="ojos-felices">
+                                    <path d="M31 52 Q40 40 49 52" class="b-linea"/>
+                                    <path d="M71 52 Q80 40 89 52" class="b-linea"/>
+                                </g>
+                                <!-- párpados caídos (triste) -->
+                                <g class="parpados">
+                                    <path d="M23 48 A17 17 0 0 1 57 48 Z" class="b-cuerpo"/>
+                                    <path d="M63 48 A17 17 0 0 1 97 48 Z" class="b-cuerpo"/>
+                                </g>
+                                <!-- cejas (preocupado) -->
+                                <g class="cejas">
+                                    <path d="M27 27 L50 34" class="b-linea"/>
+                                    <path d="M93 27 L70 34" class="b-linea"/>
+                                </g>
+                                <!-- lágrima, pico, mejillas y patas -->
+                                <path d="M36 64 q-4 7 0 10 q4 -3 0 -10 Z" class="b-lagrima"/>
+                                <path d="M54 60 L66 60 L60 72 Z" class="b-pico"/>
+                                <circle cx="26" cy="66" r="5" class="b-mejilla"/>
+                                <circle cx="94" cy="66" r="5" class="b-mejilla"/>
+                                <path d="M47 119 l-4 7 M51 119 v8 M55 119 l4 7 M65 119 l-4 7 M69 119 v8 M73 119 l4 7" class="b-patas"/>
+                            </svg>
+                        </div>
                         <div>
                             <h2>Pepo está <span id="mascota-estado">tranquilo</span></h2>
                             <p id="mascota-mensaje" class="burbuja">¡Hola! Registra tu primer movimiento.</p>
@@ -126,6 +173,27 @@
                     <p id="mov-error" class="error"></p>
                     <button type="submit">Guardar movimiento</button>
                 </form>
+            </div>
+            <!-- ========== PRESUPUESTO POR CATEGORÍA ========== -->
+            <div id="vista-presupuesto" class="vista" hidden>
+                <form id="form-presupuesto" class="tarjeta">
+                    <h2>Definir presupuesto mensual</h2>
+                    <p class="gris">Ponle un tope a cada categoría y Pepo te avisará cuando te acerques.</p>
+
+                    <label for="pres-categoria">Categoría</label>
+                    <select id="pres-categoria"></select>
+
+                    <label for="pres-limite">Límite mensual (COP)</label>
+                    <input type="number" id="pres-limite" placeholder="Ej: 300000">
+
+                    <p id="pres-error" class="error"></p>
+                    <button type="submit">Guardar presupuesto</button>
+                </form>
+
+                <div class="tarjeta tarjeta-ancha">
+                    <h2>Presupuestos de este mes</h2>
+                    <div id="lista-presupuestos" class="lista-presupuestos"></div>
+                </div>
             </div>
 
             <!-- ========== HISTORIAL (RF9) ========== -->
