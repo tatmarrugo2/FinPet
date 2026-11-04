@@ -188,6 +188,26 @@
                     <button type="submit">Guardar movimiento</button>
                     <button type="button" id="mov-cancelar" class="btn-cancelar" hidden>Cancelar edición</button>
                 </form>
+
+                <!-- Categorías propias (HU-26) -->
+                <form id="form-categoria" class="tarjeta">
+                    <h2>Mis categorías</h2>
+                    <p class="gris">Crea categorías que no están en la lista. Aparecen al registrar, en el historial y en presupuestos.</p>
+
+                    <label for="cat-tipo">Tipo</label>
+                    <select id="cat-tipo">
+                        <option value="gasto">Gasto</option>
+                        <option value="ingreso">Ingreso</option>
+                    </select>
+
+                    <label for="cat-nombre">Nombre</label>
+                    <input type="text" id="cat-nombre" maxlength="30" placeholder="Ej: Mascotas">
+
+                    <p id="cat-error" class="error"></p>
+                    <button type="submit">Agregar categoría</button>
+
+                    <div id="lista-categorias" class="lista-categorias"></div>
+                </form>
             </div>
             <!-- ========== PRESUPUESTO POR CATEGORÍA ========== -->
             <div id="vista-presupuesto" class="vista" hidden>
