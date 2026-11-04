@@ -196,11 +196,15 @@ selTipo.addEventListener("change", cargarCategorias);
 cargarCategorias();
  
 // ===== 9. LEER MOVIMIENTOS DE LA BASE DE DATOS =====
-function hoy() {
-    const d = new Date();
+// Convierte una fecha en texto "AAAA-MM-DD", el mismo formato que se guarda en Firestore
+function fechaTexto(d) {
     const mes = String(d.getMonth() + 1).padStart(2, "0");
     const dia = String(d.getDate()).padStart(2, "0");
     return d.getFullYear() + "-" + mes + "-" + dia;
+}
+
+function hoy() {
+    return fechaTexto(new Date());
 }
  
 document.getElementById("mov-fecha").value = hoy();
@@ -386,11 +390,41 @@ function actualizarMascota(ingresos, gastos) {
                   excedidos.map(p => p.categoria).join(", ") + ".";
     }
  
+    // Racha de días seguidos registrando (HU-27): si se rompe, Pepo se pone triste
+    const racha = calcularRacha();
+    const rachaEl = document.getElementById("racha");
+    rachaEl.textContent = "🔥 Racha: " + racha + (racha === 1 ? " día" : " días");
+    rachaEl.classList.toggle("perdida", racha === 0);
+    if (movimientos.length > 0 && racha === 0) {
+        estado = "triste";
+        mensaje = "¡Perdiste tu racha! Registra un movimiento hoy y empezamos otra.";
+    }
+
     document.getElementById("mascota").dataset.animo = estado;
     document.getElementById("mascota-estado").textContent = estado;
     document.getElementById("mascota-mensaje").textContent = mensaje;
 }
  
+// ===== 12B. RACHA DE DÍAS SEGUIDOS (HU-27) =====
+// Cuenta cuántos días seguidos tienen al menos un movimiento, hacia atrás desde hoy.
+// Si hoy todavía no hay registros, se cuenta desde ayer: el usuario aún puede registrar hoy.
+// Si ayer y hoy están vacíos, la racha vuelve a 0.
+function calcularRacha() {
+    const diasConRegistro = new Set(movimientos.map(m => m.fecha));
+    const dia = new Date();
+
+    if (!diasConRegistro.has(fechaTexto(dia))) {
+        dia.setDate(dia.getDate() - 1);
+    }
+
+    let racha = 0;
+    while (diasConRegistro.has(fechaTexto(dia))) {
+        racha++;
+        dia.setDate(dia.getDate() - 1);
+    }
+    return racha;
+}
+
 // ===== 13. MENSAJE AL REGISTRAR (RF7) =====
 function mensajeMascota(movimiento) {
     let mensaje;
