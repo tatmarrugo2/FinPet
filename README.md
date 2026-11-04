@@ -102,3 +102,12 @@ La app necesita conexión a internet porque los datos están en Firebase. No fun
 
 - App instalable en el celular (PWA).
 - Panel de administrador para gestionar usuarios y categorías.
+
+## Proceso de trabajo
+
+El equipo trabaja con **Scrum**. Todo el proceso está en este repositorio:
+
+- 📋 [Proceso Scrum: roles, ceremonias, tablero y Definición de Hecho](docs/proceso-scrum.md)
+- 📝 [Product Backlog y sprints](docs/product-backlog.md)
+- 🗂️ [Tablero Scrum (Projects)](https://github.com/users/tatmarrugo2/projects/3)
+- 🗒️ [Actas de las ceremonias](docs/actas/)
