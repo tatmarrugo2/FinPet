@@ -172,6 +172,18 @@ button:hover { opacity: 0.9; }
     font-weight: bold;
 }
 
+/* Racha de días seguidos registrando (HU-27) */
+.racha {
+    display: inline-block;
+    margin: 10px 0 0;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: var(--blanco);
+    border: 2px solid var(--amarillo);
+    font-weight: bold;
+}
+.racha.perdida { border-color: var(--borde); color: var(--gris); }
+
 /* ===== GRÁFICO DE BARRAS ===== */
 .grafico {
     display: grid;
