@@ -27,6 +27,8 @@ let movimientos = [];
 let presupuestos = [];
 // Copia en memoria de las metas de ahorro del usuario
 let metas = [];
+// Copia en memoria de las categorías creadas por el usuario (HU-26)
+let categoriasPropias = [];
  
 // ===== 1B. CAMPOS DE DINERO CON PUNTOS DE MIL =====
 // Convierte lo que se escribe en formato colombiano: 1500000 → 1.500.000
@@ -182,14 +184,31 @@ const CATEGORIAS = {
 const selTipo = document.getElementById("mov-tipo");
 const selCategoria = document.getElementById("mov-categoria");
  
+// Categorías de un tipo: las de la app, luego las propias del usuario y "Otros" al final
+function categoriasDe(tipo) {
+    const base = CATEGORIAS[tipo].filter(c => c !== "Otros");
+    const propias = categoriasPropias.filter(c => c.tipo === tipo).map(c => c.nombre);
+    return [...base, ...propias, "Otros"];
+}
+
+function llenarSelect(select, opciones, primeraOpcion) {
+    const elegido = select.value;
+    select.innerHTML = "";
+    if (primeraOpcion) select.appendChild(new Option(primeraOpcion, ""));
+    opciones.forEach(cat => select.appendChild(new Option(cat, cat)));
+    if ([...select.options].some(o => o.value === elegido)) select.value = elegido;
+}
+
 function cargarCategorias() {
-    selCategoria.innerHTML = "";
-    CATEGORIAS[selTipo.value].forEach(function (cat) {
-        const opcion = document.createElement("option");
-        opcion.value = cat;
-        opcion.textContent = cat;
-        selCategoria.appendChild(opcion);
-    });
+    llenarSelect(selCategoria, categoriasDe(selTipo.value));
+}
+
+// Vuelve a llenar todas las listas de categorías (registro, filtro del historial y presupuestos)
+function refrescarCategorias() {
+    cargarCategorias();
+    llenarSelect(fCategoria, [...new Set([...categoriasDe("gasto"), ...categoriasDe("ingreso")])], "Todas las categorías");
+    llenarSelect(selPresCategoria, categoriasDe("gasto"));
+    dibujarCategoriasPropias();
 }
  
 selTipo.addEventListener("change", cargarCategorias);
@@ -493,14 +512,6 @@ const fTipo = document.getElementById("f-tipo");
 const fCategoria = document.getElementById("f-categoria");
 const fMes = document.getElementById("f-mes");
  
-const todasCategorias = new Set([...CATEGORIAS.gasto, ...CATEGORIAS.ingreso]);
-todasCategorias.forEach(function (cat) {
-    const opcion = document.createElement("option");
-    opcion.value = cat;
-    opcion.textContent = cat;
-    fCategoria.appendChild(opcion);
-});
- 
 // Evita que un texto escrito por el usuario se interprete como código HTML
 function escapar(texto) {
     const div = document.createElement("div");
@@ -685,14 +696,6 @@ document.getElementById("btn-ejemplo").addEventListener("click", async function 
  
 // ===== 18. PRESUPUESTO POR CATEGORÍA =====
 const selPresCategoria = document.getElementById("pres-categoria");
- 
-// Solo las categorías de gasto tienen presupuesto
-CATEGORIAS.gasto.forEach(function (cat) {
-    const opcion = document.createElement("option");
-    opcion.value = cat;
-    opcion.textContent = cat;
-    selPresCategoria.appendChild(opcion);
-});
  
 // Cuánto se ha gastado este mes en una categoría
 function gastadoEnMes(categoria) {
@@ -1030,6 +1033,80 @@ document.getElementById("lista-metas").addEventListener("click", async function 
     }
 });
  
+// ===== 20B. CATEGORÍAS PROPIAS (HU-26) =====
+// Trae de Firestore las categorías que creó el usuario
+async function cargarCategoriasPropias() {
+    const consulta = query(collection(db, "categorias"), where("uid", "==", auth.currentUser.uid));
+    const resultado = await getDocs(consulta);
+    categoriasPropias = resultado.docs.map(d => ({ id: d.id, ...d.data() }));
+    refrescarCategorias();
+}
+
+// Crear una categoría nueva
+document.getElementById("form-categoria").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const tipo = document.getElementById("cat-tipo").value;
+    const campoNombre = document.getElementById("cat-nombre");
+    const nombre = campoNombre.value.trim();
+    const error = document.getElementById("cat-error");
+    error.textContent = "";
+
+    if (nombre === "") {
+        error.textContent = "Escribe el nombre de la categoría.";
+        return;
+    }
+    const yaExiste = categoriasDe(tipo).some(c => c.toLowerCase() === nombre.toLowerCase());
+    if (yaExiste) {
+        error.textContent = "Esa categoría ya existe.";
+        return;
+    }
+
+    try {
+        const nueva = { uid: auth.currentUser.uid, tipo: tipo, nombre: nombre };
+        const ref = await addDoc(collection(db, "categorias"), nueva);
+        categoriasPropias.push({ id: ref.id, ...nueva });
+        campoNombre.value = "";
+        refrescarCategorias();
+    } catch (err) {
+        console.error(err);
+        error.textContent = "No se pudo guardar. Revisa las reglas de Firestore o tu conexión.";
+    }
+});
+
+// Dibuja la lista de categorías propias con su botón para eliminar
+function dibujarCategoriasPropias() {
+    const contenedor = document.getElementById("lista-categorias");
+    if (categoriasPropias.length === 0) {
+        contenedor.innerHTML = '<p class="gris">Aún no has creado categorías.</p>';
+        return;
+    }
+    contenedor.innerHTML = categoriasPropias.map(c => `
+        <div class="cat-item">
+            <span>${escapar(c.nombre)}<span class="cat-tipo">${c.tipo}</span></span>
+            <button type="button" class="btn-borrar" data-id="${c.id}" title="Eliminar categoría">🗑</button>
+        </div>`).join("");
+}
+
+// Eliminar una categoría (los movimientos que ya la usan conservan su nombre)
+document.getElementById("lista-categorias").addEventListener("click", async function (e) {
+    const boton = e.target.closest(".btn-borrar");
+    if (!boton) return;
+    if (!confirm("¿Eliminar esta categoría? Los movimientos que ya la usan no cambian.")) return;
+
+    const id = boton.dataset.id;
+    try {
+        await deleteDoc(doc(db, "categorias", id));
+        categoriasPropias = categoriasPropias.filter(c => c.id !== id);
+        refrescarCategorias();
+    } catch (err) {
+        console.error(err);
+        alert("No se pudo eliminar. Revisa tu conexión.");
+    }
+});
+
+// Llena las listas de categorías apenas carga la página
+refrescarCategorias();
+
 // ===== 21. AL ABRIR LA PÁGINA: ¿HAY ALGUIEN CON SESIÓN? =====
 // Firebase avisa cada vez que alguien entra o sale
 onAuthStateChanged(auth, async function (usuario) {
@@ -1039,6 +1116,11 @@ onAuthStateChanged(auth, async function (usuario) {
         pantallaApp.hidden = false;
         mostrarVista("vista-inicio");
         try {
+            try {
+                await cargarCategoriasPropias();
+            } catch (err) {
+                console.error("No se pudieron cargar las categorías propias:", err);
+            }
             await cargarPresupuestos();
             await cargarMetas();
             await cargarMovimientos();
@@ -1050,6 +1132,8 @@ onAuthStateChanged(auth, async function (usuario) {
         movimientos = [];
         presupuestos = [];
         metas = [];
+        categoriasPropias = [];
+        refrescarCategorias();
         salirDeEdicion();
         pantallaApp.hidden = true;
         pantallaAcceso.hidden = false;
