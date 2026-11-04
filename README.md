@@ -2,7 +2,7 @@
 
 **FinPet** es una aplicación web para registrar, categorizar y consultar ingresos y gastos personales, acompañada por **Pepo**, un búho virtual que reacciona a los hábitos financieros del usuario y le da mensajes de motivación.
 
-Proyecto de aula de **Ingeniería de Software** (2026).
+Proyecto de aula de **Ingeniería de Software**.
 
 **Integrantes:** Alejandro Agamez · Tatiana Marrugo · Esteban Ramírez
 
@@ -102,3 +102,11 @@ La app necesita conexión a internet porque los datos están en Firebase. No fun
 
 - App instalable en el celular (PWA).
 - Panel de administrador para gestionar usuarios y categorías.
+
+## Proceso de trabajo
+
+El equipo trabaja con **Scrum**. Todo el proceso está en este repositorio:
+
+- 📋 [Proceso Scrum: roles, ceremonias, tablero y Definición de Hecho](docs/proceso-scrum.md)
+- 📝 [Product Backlog y sprints](docs/product-backlog.md)
+- 🗂️ [Tablero Scrum (Projects)](https://github.com/users/tatmarrugo2/projects/3)
