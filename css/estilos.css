@@ -156,6 +156,19 @@ button:hover { opacity: 0.9; }
 .contenido .tarjeta { max-width: none; }
 #form-movimiento { max-width: 480px; margin: 0 auto; }
 
+/* Categorías propias (HU-26) */
+#form-categoria { max-width: 480px; margin: 0 auto; }
+.lista-categorias { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.cat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    border: 1.5px solid var(--borde);
+    border-radius: 10px;
+}
+.cat-tipo { font-size: 0.8rem; color: var(--gris); margin-left: 6px; }
+
 .gris { color: var(--gris); margin: 0; }
 .verde { color: var(--verde); font-weight: bold; font-size: 1.2rem; margin: 0; }
 .rojo { color: var(--rojo); font-weight: bold; font-size: 1.2rem; margin: 0; }
