@@ -7,7 +7,6 @@ FinPet se desarrolla con **Scrum**: el trabajo se divide en sprints de una seman
 | Product Backlog | [`docs/product-backlog.md`](product-backlog.md) e **Issues** (una por historia de usuario) |
 | Sprints | **Milestones** (`Sprint 1`, `Sprint 2`, …) |
 | Tablero | **Projects** → tablero «FinPet - scrum» |
-| Actas de las ceremonias | [`docs/actas/`](actas/) |
 | Código revisado | **Pull requests** |
 
 ## Roles
@@ -28,8 +27,6 @@ Los tres integrantes estiman las historias en Planning Poker y revisan el códig
 | Daily Scrum | Cada día | 15 min | ¿Qué hice?, ¿qué haré?, ¿tengo bloqueos? |
 | Sprint Review | Fin del sprint | 30 min | Demostración; historias aceptadas o devueltas al backlog |
 | Retrospectiva | Después de la Review | 30 min | Mejoras para el siguiente sprint |
-
-Cada ceremonia deja un acta en `docs/actas/` con la [plantilla](actas/plantilla.md).
 
 ## Tablero
 
